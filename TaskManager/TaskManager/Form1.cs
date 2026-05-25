@@ -12,8 +12,7 @@ namespace TaskManager
 {
     /// <summary>
     /// Главная форма приложения TaskManager.
-    /// Предоставляет интерфейс для добавления, редактирования, удаления,
-    /// сортировки и фильтрации задач. Все данные хранятся только в оперативной памяти.
+    /// Предоставляет интерфейс для добавления, редактирования, удаления, сортировки и фильтрации задач. Все данные хранятся только в оперативной памяти.
     /// </summary>
     public partial class Form1 : Form
     {
@@ -28,7 +27,7 @@ namespace TaskManager
         private int _nextId = 1;
 
         /// <summary>
-        /// Инициализирует новый экземпляр формы <see cref="Form1"/>.
+        /// Инициализирует новый экземпляр формы.
         /// </summary>
         public Form1()
         {
@@ -189,19 +188,19 @@ namespace TaskManager
         }
 
         /// <summary>
-        /// Обработчик изменения приоритета в ComboBox (зарезервирован для будущих расширений).
+        /// Обработчик изменения приоритета в ComboBox.
         /// </summary>
         private void cbPriority_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Логика не требуется по ТЗ.
+            
         }
 
         /// <summary>
-        /// Обработчик события входа в GroupBox «Сортировка и фильтры» (зарезервирован).
+        /// Обработчик события входа в GroupBox «Сортировка и фильтры».
         /// </summary>
         private void gbFilters_Enter(object sender, EventArgs e)
         {
-            // Логика не требуется по ТЗ.
+            
         }
 
         /// <summary>
@@ -304,17 +303,15 @@ namespace TaskManager
             txtTitle.Text = string.Empty;
             txtDescription.Text = string.Empty;
             dtpDueDate.Value = DateTime.Today;
-            cbPriority.SelectedIndex = 1; // Medium
+            cbPriority.SelectedIndex = 1;
             chkCompleted.Checked = false;
 
-            // Снимаем выделение в ListBox, чтобы избежать повторного срабатывания SelectedIndexChanged
             listBoxTasks.ClearSelected();
         }
 
         /// <summary>
         /// Загружает данные указанной задачи в поля ввода формы.
         /// </summary>
-        /// <param name="task">Задача, данные которой необходимо отобразить.</param>
         private void LoadTaskToFields(TaskItem task)
         {
             txtTitle.Text = task.Title;
@@ -326,11 +323,9 @@ namespace TaskManager
 
         /// <summary>
         /// Возвращает единственную выбранную в ListBox задачу.
-        /// Если не выбрана ни одна задача — показывает предупреждение (если не включён тихий режим).
+        /// Если не выбрана ни одна задача — показывает предупреждение.
         /// Если выбрано несколько задач — возвращает null без предупреждения.
         /// </summary>
-        /// <param name="silent">Если true, предупреждение при отсутствии выбора не показывается.</param>
-        /// <returns>Выбранная задача или null, если выбор некорректен.</returns>
         private TaskItem GetSingleSelectedTask(bool silent = false)
         {
             if (listBoxTasks.SelectedItem == null)
@@ -353,11 +348,6 @@ namespace TaskManager
         /// Проверяет корректность данных, введённых пользователем в поля формы.
         /// При ошибке отображает соответствующее сообщение.
         /// </summary>
-        /// <param name="title">Возвращает проверенное название задачи.</param>
-        /// <param name="description">Возвращает описание задачи.</param>
-        /// <param name="dueDate">Возвращает дату выполнения.</param>
-        /// <param name="priority">Возвращает приоритет задачи.</param>
-        /// <returns>true, если все данные корректны; иначе false.</returns>
         private bool ValidateTaskInput(
             out string title,
             out string description,
@@ -401,6 +391,13 @@ namespace TaskManager
             }
 
             return true;
+        }
+        /// <summary>
+        /// Обработчик изменения текста в поле описания.
+        /// </summary>
+        private void txtDescription_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
