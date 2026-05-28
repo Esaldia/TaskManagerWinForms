@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -12,7 +13,8 @@ namespace TaskManager
 {
     /// <summary>
     /// Главная форма приложения TaskManager.
-    /// Предоставляет интерфейс для добавления, редактирования, удаления, сортировки и фильтрации задач. Все данные хранятся только в оперативной памяти.
+    /// Предоставляет интерфейс для добавления, редактирования, удаления,
+    /// сортировки и фильтрации задач. Все данные хранятся только в оперативной памяти.
     /// </summary>
     public partial class Form1 : Form
     {
@@ -27,7 +29,7 @@ namespace TaskManager
         private int _nextId = 1;
 
         /// <summary>
-        /// Инициализирует новый экземпляр формы.
+        /// Инициализирует новый экземпляр формы <see cref="Form1"/>.
         /// </summary>
         public Form1()
         {
@@ -40,16 +42,9 @@ namespace TaskManager
         /// </summary>
         private void Form1_Load(object sender, EventArgs e)
         {
-            // Приоритет по умолчанию — Medium
             cbPriority.SelectedIndex = 1;
-
-            // Сортировка по умолчанию — по дате (возрастание)
             cbSort.SelectedIndex = 0;
-
-            // Фильтр по умолчанию — все задачи
             cbFilter.SelectedIndex = 0;
-
-            // Дата выполнения по умолчанию — сегодня
             dtpDueDate.Value = DateTime.Today;
         }
 
@@ -66,6 +61,17 @@ namespace TaskManager
 
             if (!ValidateTaskInput(out title, out description, out dueDate, out priority))
             {
+                return;
+            }
+
+            // Проверка на дубликат
+            if (IsDuplicateTask(title, dueDate, priority))
+            {
+                MessageBox.Show(
+                    "Задача с таким названием, датой и приоритетом уже существует.",
+                    "Ошибка",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
                 return;
             }
 
@@ -106,6 +112,17 @@ namespace TaskManager
                 return;
             }
 
+            // Проверка на дубликат (исключаем текущую редактируемую задачу)
+            if (IsDuplicateTask(title, dueDate, priority, excludeId: selected.Id))
+            {
+                MessageBox.Show(
+                    "Задача с таким названием, датой и приоритетом уже существует.",
+                    "Ошибка",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+
             selected.Title = title;
             selected.Description = description;
             selected.DueDate = dueDate;
@@ -133,8 +150,6 @@ namespace TaskManager
                 return;
             }
 
-            // Копируем выделенные задачи в отдельный список,
-            // чтобы избежать изменения коллекции во время итерации.
             var toRemove = new List<TaskItem>();
             foreach (object item in listBoxTasks.SelectedItems)
             {
@@ -188,25 +203,27 @@ namespace TaskManager
         }
 
         /// <summary>
-        /// Обработчик изменения приоритета в ComboBox.
+        /// Обработчик изменения приоритета в ComboBox (зарезервирован для будущих расширений).
         /// </summary>
         private void cbPriority_SelectedIndexChanged(object sender, EventArgs e)
         {
-            
+            // Логика не требуется по ТЗ.
         }
 
         /// <summary>
-        /// Обработчик события входа в GroupBox «Сортировка и фильтры».
+        /// Обработчик события входа в GroupBox «Сортировка и фильтры» (зарезервирован).
         /// </summary>
         private void gbFilters_Enter(object sender, EventArgs e)
         {
-            
+            // Логика не требуется по ТЗ.
         }
 
         /// <summary>
         /// Обработчик события отрисовки элемента ListBox.
-        /// Отображает просроченные невыполненные задачи красным цветом,
-        /// остальные — чёрным.
+        /// Отображает задачи разными цветами:
+        /// - зелёный: выполненные;
+        /// - красный: просроченные невыполненные;
+        /// - чёрный: все остальные.
         /// </summary>
         private void listBoxTasks_DrawItem(object sender, DrawItemEventArgs e)
         {
@@ -222,11 +239,12 @@ namespace TaskManager
                 return;
             }
 
-            // Цвет текста:
-            // - красный, если задача просрочена и не выполнена;
-            // - чёрный во всех остальных случаях (в том числе для выполненных просроченных).
             Brush textBrush;
-            if (!task.IsCompleted && task.DueDate.Date < DateTime.Today)
+            if (task.IsCompleted)
+            {
+                textBrush = Brushes.Green;
+            }
+            else if (task.DueDate.Date < DateTime.Today)
             {
                 textBrush = Brushes.Red;
             }
@@ -251,7 +269,6 @@ namespace TaskManager
 
                 IEnumerable<TaskItem> query = _tasks.AsEnumerable();
 
-                // Фильтрация по приоритету
                 string filter = cbFilter.SelectedItem as string;
                 if (!string.IsNullOrEmpty(filter) && filter != "All")
                 {
@@ -262,7 +279,6 @@ namespace TaskManager
                     }
                 }
 
-                // Сортировка
                 string sort = cbSort.SelectedItem as string;
                 if (!string.IsNullOrEmpty(sort))
                 {
@@ -279,7 +295,6 @@ namespace TaskManager
                     }
                     else if (sort.StartsWith("По приоритету"))
                     {
-                        // High → Medium → Low (по убыванию "важности")
                         query = query.OrderByDescending(t => (int)t.Priority);
                     }
                 }
@@ -305,7 +320,6 @@ namespace TaskManager
             dtpDueDate.Value = DateTime.Today;
             cbPriority.SelectedIndex = 1;
             chkCompleted.Checked = false;
-
             listBoxTasks.ClearSelected();
         }
 
@@ -369,6 +383,26 @@ namespace TaskManager
                 return false;
             }
 
+            if (!IsValidTextInput(title))
+            {
+                MessageBox.Show(
+                    "Название должно содержать буквы русского или английского алфавита. Спецсимволы разрешены только вместе с текстом.",
+                    "Ошибка ввода",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(description) && !IsValidTextInput(description))
+            {
+                MessageBox.Show(
+                    "Описание должно содержать буквы русского или английского алфавита. Спецсимволы разрешены только вместе с текстом.",
+                    "Ошибка ввода",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return false;
+            }
+
             object selectedPriority = cbPriority.SelectedItem;
             if (selectedPriority == null)
             {
@@ -392,12 +426,78 @@ namespace TaskManager
 
             return true;
         }
-        /// <summary>
-        /// Обработчик изменения текста в поле описания.
-        /// </summary>
-        private void txtDescription_TextChanged(object sender, EventArgs e)
-        {
 
+        /// <summary>
+        /// Проверяет, содержит ли строка допустимые символы:
+        /// буквы русского или английского алфавита; спецсимволы разрешены только при наличии букв.
+        /// </summary>
+        private bool IsValidTextInput(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            // Проверяем наличие хотя бы одной буквы (русской или английской)
+            bool hasLetter = false;
+            foreach (char c in text)
+            {
+                if (char.IsLetter(c))
+                {
+                    // Проверяем, что буква из нужного диапазона (латиница или кириллица)
+                    if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+                        (c >= 'А' && c <= 'Я') || (c >= 'а' && c <= 'я') ||
+                        c == 'Ё' || c == 'ё')
+                    {
+                        hasLetter = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!hasLetter)
+            {
+                return false;
+            }
+
+            // Проверяем, что все символы — буквы, цифры, пробелы или допустимые спецсимволы
+            // Разрешаем: буквы, цифры, пробел, пунктуацию (!?.,;:-'")
+            foreach (char c in text)
+            {
+                if (char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) ||
+                    "!?.,;:-'\"()[]{}".IndexOf(c) >= 0)
+                {
+                    continue;
+                }
+                // Если символ не из разрешённого набора — недопустим
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Проверяет, существует ли задача с указанными параметрами (название, дата, приоритет).
+        /// Используется для предотвращения дубликатов.
+        /// </summary>
+        private bool IsDuplicateTask(string title, DateTime dueDate, TaskPriority priority, int? excludeId = null)
+        {
+            foreach (TaskItem task in _tasks)
+            {
+                if (excludeId.HasValue && task.Id == excludeId.Value)
+                {
+                    continue;
+                }
+
+                if (string.Equals(task.Title, title, StringComparison.OrdinalIgnoreCase) &&
+                    task.DueDate.Date == dueDate.Date &&
+                    task.Priority == priority)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

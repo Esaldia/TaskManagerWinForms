@@ -146,7 +146,6 @@
             this.txtDescription.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtDescription.Size = new System.Drawing.Size(350, 80);
             this.txtDescription.TabIndex = 3;
-            this.txtDescription.TextChanged += new System.EventHandler(this.txtDescription_TextChanged);
             // 
             // lblDesc
             // 
